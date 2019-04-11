@@ -1,353 +1,177 @@
-package ru.tkachenko.dmitry.geekbrains.java1.dz4;
+package ru.geekbrains.les_4_4;
 
-import java.util.Random;
 import java.util.Scanner;
+import java.util.Arrays;
+import java.util.Random;
 
-/**
- * Created by dmitry tkachenko on 2/3/17.
- *
- * Крестики-нолики в процедурном стиле
- *
- * 1. Полностью разобраться с кодом, попробовать переписать с нуля, стараясь
- * не подглядывать в методичку;
- *
- * 2. Переделать проверку победы, чтобы она не была реализована просто набором условий,
- * например, с использованием циклов.
- *
- * 3. Попробовать переписать логику проверки победы, чтобы она работала для поля 5х5 и
- * количества фишек 4. Очень желательно не делать это просто набором условий для каждой из
- * возможных ситуаций;
- *
- * 4. Доработать искусственный интеллект, чтобы он мог блокировать ходы игрока.
- */
-public class Dz4 {
-    private static char[][] tiles;
-    private static final int SIZE = 3;
-    private static final int ACTION_SUM = SIZE * SIZE;
-    private static final int DOTS_TO_WIN = SIZE;
-    private static final char DOT_EMPTY = '_';
-    private static final char DOT_X = 'X';
-    private static final char DOT_O = 'O';
-    private static Scanner scanner = new Scanner(System.in);
-    private static Random random = new Random();
-    private static boolean trigger = true;
-    private static int actionCounter = 0;
-    private static char currentDot;
+public class Main {
 
-    public static void main(String[] args) {
-        fillMap();
-        printMap();
+    static int SIZE_X = 5;
+    static int SIZE_Y = 5;
 
-        while (checkGameLoop()) {
-            if (trigger) {
-                currentDot = DOT_X;
-//                humanPlayer(); // метод для человека
-//                stupidPcPlayer(); // для pc vs. pc
-                aiPlayer(); // метод не смог реализовать
-            } else {
-                currentDot = DOT_O;
-//                stupidPcPlayer(); // pc
-                aiPlayer(); // метод не смог реализовать
-            }
+    static char[][] field = new char[SIZE_Y][SIZE_X];
 
-            trigger = !trigger;
-            printMap();
-            actionCounter++;
-        }
-    }
+    static char PLAYER_DOT = 'X';
+    static char AI_DOT = 'O';
+    static char EMPTY_DOT = '.';
+    static Scanner scanner = new Scanner(System.in);
+    static Random random = new Random();
 
-    private static void fillMap() {
-        tiles = new char[SIZE][SIZE];
-
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                tiles[i][j] = DOT_EMPTY;
+    public static void initField() {
+        for (int i = 0; i < SIZE_Y; i++) {
+            for (int j = 0; j < SIZE_X; j++) {
+                field[i][j] = EMPTY_DOT;
             }
         }
     }
 
-    private static void printMap() {
-        System.out.printf("   ");
-        for (int i = 0; i < SIZE; i++) {
-            System.out.printf("%2d ", i + 1);
-        }
-
-        System.out.println();
-
-        for (int i = 0; i < SIZE; i++) {
-            System.out.printf("%2d ", i + 1);
-            for (int j = 0; j < SIZE; j++) {
-                System.out.printf("%2c ", tiles[i][j]);
+    public static void printField() {
+        System.out.println("-------");
+        for (int i = 0; i < SIZE_Y; i++) {
+            System.out.print("|");
+            for (int j = 0; j < SIZE_X; j++) {
+                System.out.print(field[i][j] + "|");
             }
             System.out.println();
         }
-
-        System.out.println();
+        System.out.println("-------");
     }
 
-    private static int[] humanInput() {
-        int input[] = new int[2];
-
-        while (!scanner.hasNextInt()) {
-            scanner.next();
-        }
-
-        while (!scanner.hasNextInt()) {
-            scanner.next();
-        }
-
-        input[0] = scanner.nextInt() - 1;
-        input[1] = scanner.nextInt() - 1;
-
-        return input;
-    }
-
-    private static void humanPlayer() {
-        int y;
-        int x;
-
+    public static void playerStep() {
+        int x,y;
         do {
-            System.out.printf("Ходит человек [%c]. Введите Y X: ", currentDot);
-            int[] input = humanInput();
-            y = input[0];
-            x = input[1];
-        } while (!checkAction(y, x));
-
-        tiles[y][x] = currentDot;
+            System.out.println("Ввести координаты: X Y (1-5)");
+            x = scanner.nextInt() - 1;
+            y = scanner.nextInt() - 1;
+        } while (!isCellValid(y,x));
+        setSym(y,x,PLAYER_DOT);
     }
 
-    private static void stupidPcPlayer() {
-        int y;
-        int x;
-
-        System.out.printf("Ходит AI [%c]", currentDot);
-
+    public static void aiStep() {
+        int x,y;
         do {
-            y = random.nextInt(SIZE);
-            x = random.nextInt(SIZE);
-        } while (!checkAction(y, x));
-
-        System.out.printf(" (y: %d, x: %d)\n", y + 1, x + 1);
-
-        tiles[y][x] = currentDot;
+            System.out.println("Ввести кооррдинаты: X Y (1-5)");
+            x = random.nextInt(SIZE_X);
+            y = random.nextInt(SIZE_Y);
+        } while (!isCellValid(y,x));
+        setSym(y,x,AI_DOT);
     }
 
-    private static boolean checkAction(int y, int x) {
-        if (x < 0 || y < 0 || x >= SIZE || y >= SIZE) return false;
-        if (DOT_EMPTY == tiles[y][x]) return true;
-        return false;
-    }
-
-    private static boolean isContinue() {
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                if (findRightUp(i, j)) return false;
-                if (findRight(i, j)) return false;
-                if (findRightDown(i, j)) return false;
-                if (findDown(i, j)) return false;
-            }
-        }
-        return true;
-    }
-
-    private static boolean findRightUp(int y, int x) {
-        for (int j = 0; j < DOTS_TO_WIN; j++) {
-
-            if (y < 0 || y >= SIZE || x < 0 || x >= SIZE || currentDot != tiles[y][x]) return false;
-
-            y--;
-            x++;
-        }
-        return true;
-    }
-
-    private static boolean findRight(int y, int x) {
-        for (int j = 0; j < DOTS_TO_WIN; j++) {
-
-            if (y < 0 || y >= SIZE || x < 0 || x >= SIZE || currentDot != tiles[y][x]) return false;
-
-            x++;
-        }
-        return true;
-    }
-
-    private static boolean findRightDown(int y, int x) {
-        for (int j = 0; j < DOTS_TO_WIN; j++) {
-
-            if (y < 0 || y >= SIZE || x < 0 || x >= SIZE || currentDot != tiles[y][x]) return false;
-
-            y++;
-            x++;
-        }
-        return true;
-    }
-
-    private static boolean findDown(int y, int x) {
-        for (int j = 0; j < DOTS_TO_WIN; j++) {
-
-            if (y < 0 || y >= SIZE || x < 0 || x >= SIZE || currentDot != tiles[y][x]) return false;
-
-            y++;
-        }
-        return true;
-    }
-
-    private static boolean checkGameLoop() {
-        if (actionCounter == ACTION_SUM) return false;
-        if (!isContinue()) return false;
-        return true;
-    }
-
-    // Все ниже методы созданы для написания AI метода
-
-    private static void aiPlayer() {
-
-        switch (DOTS_TO_WIN) {
-            case 1:
-            case 2:
-            case 3:
-                if (!isSet()) {
-                    stupidPcPlayer();
+    public static boolean isFieldFull() {
+        for (int i = 0; i < SIZE_Y; i++) {
+            for (int j = 0; j < SIZE_X; j++) {
+                if(field[i][j] == EMPTY_DOT) {
+                    return false;
                 }
-                break;
-            default:
-                stupidPcPlayer();
-                break;
+            }
         }
+        return true;
     }
 
-    private static boolean isSet() {
-        System.out.println("AI");
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                if (setRightUp(i, j)) return true;
-                if (setRight(i, j)) return true;
-                if (setRightDown(i, j)) return true;
-                if (setDown(i, j)) return true;
+    /* Проверка равности горизонтальных и вертикальных линий */
+
+    public static boolean checkLines(char sym){
+        boolean lineX = true;
+        boolean lineY = true;
+        for (int i = 0; i < SIZE_Y; i++) {
+            for (int j = 0; j < SIZE_X; j++) {
+                lineY = lineY & field[i][j] == sym;
+                lineX = lineX & field[j][i] == sym;
             }
+            if(lineX & lineY) return true;
         }
         return false;
     }
 
-    private static boolean setRightUp(int y, int x) {
-        int lastEmptyY = -1;
-        int lastEmptyX = -1;
-        int enemyCount = 0;
-        int emptyCount = 0;
-        char enemyDot = trigger ? DOT_O : DOT_X;
+    /* Проверка равности диагоналей*/
 
-        for (int j = 0; j < DOTS_TO_WIN; j++) {
-
-            if (y < 0 || y >= SIZE || x < 0 || x >= SIZE) return false;
-            if (DOT_EMPTY == tiles[y][x]) {
-                lastEmptyY = y;
-                lastEmptyX = x;
-                emptyCount++;
-            }
-            if (enemyDot == tiles[y][x]) enemyCount++;
-            if (DOT_EMPTY == tiles[y][x]) emptyCount++;
-
-            y--;
-            x++;
+    public static boolean checkDiagonals(char sym) {
+        boolean toRight = true;
+        boolean toLeft = true;
+        for (int i = 0; i < SIZE_Y; i++) {
+            toRight = toRight & (field[i][i] == sym);
+            toLeft = toLeft & (field[5-i-1][i] == sym);
         }
-
-        if (lastEmptyY < 0 || lastEmptyX < 0 || lastEmptyY >= SIZE || lastEmptyX >= SIZE) {
-            System.out.println("error");
-            return false;
-        }
-
-        if (emptyCount > 0 && enemyCount >= SIZE - 1 && enemyCount > 0) tiles[lastEmptyY][lastEmptyX] = currentDot;
-        return true;
+        if (toRight || toLeft) return true;
+        return false;
     }
 
-    private static boolean setRight(int y, int x) {
-        int lastEmptyY = -1;
-        int lastEmptyX = -1;
-        int enemyCount = 0;
-        int emptyCount = 0;
-        char enemyDot = trigger ? DOT_O : DOT_X;
+    /* Ниже закомментированный код при поле 5х5 и количество клоток для выигрыша = 4*/
 
-        for (int j = 0; j < DOTS_TO_WIN; j++) {
+    /* Проверка равности горизонтальных и вертикальных линий 4х4 */
 
-            if (y < 0 || y >= SIZE || x < 0 || x >= SIZE) return false;
-            if (DOT_EMPTY == tiles[y][x]) {
-                lastEmptyY = y;
-                lastEmptyX = x;
-                emptyCount++;
+    /*public static boolean checkLines(char sym){
+        boolean lineX = true;
+        boolean lineY = true;
+        for (int i = 0; i < SIZE_Y-1; i++) {
+            for (int j = 0; j < SIZE_X-1; j++) {
+                lineY = lineY & field[i][j] == sym;
+                lineX = lineX & field[j][i] == sym;
             }
-            if (enemyDot == tiles[y][x]) enemyCount++;
-            if (DOT_EMPTY == tiles[y][x]) emptyCount++;
-
-            x++;
+            if(lineX & lineY) return true;
         }
-
-        if (lastEmptyY < 0 || lastEmptyX < 0 || lastEmptyY >= SIZE || lastEmptyX >= SIZE) {
-            System.out.println("error");
-            return false;
-        }
-
-        if (emptyCount > 0 && enemyCount >= SIZE - 1 && enemyCount > 0) tiles[lastEmptyY][lastEmptyX] = currentDot;
-        return true;
+        return false;
     }
 
-    private static boolean setRightDown(int y, int x) {
-        int lastEmptyY = -1;
-        int lastEmptyX = -1;
-        int enemyCount = 0;
-        int emptyCount = 0;
-        char enemyDot = trigger ? DOT_O : DOT_X;
-
-        for (int j = 0; j < DOTS_TO_WIN; j++) {
-
-            if (y < 0 || y >= SIZE || x < 0 || x >= SIZE) return false;
-            if (DOT_EMPTY == tiles[y][x]) {
-                lastEmptyY = y;
-                lastEmptyX = x;
-                emptyCount++;
-            }
-            if (enemyDot == tiles[y][x]) enemyCount++;
-            if (DOT_EMPTY == tiles[y][x]) emptyCount++;
-
-            y++;
-            x++;
+    public static boolean checkDiagonals(char sym) {
+        boolean toRight = true;
+        boolean toLeft = true;
+        for (int i = 0; i < SIZE_Y-1; i++) {
+            toRight = toRight & (field[i][i] == sym);
+            toLeft = toLeft & (field[4-i-1][i] == sym);
         }
+        if (toRight || toLeft) return true;
+        return false;
+    }*/
 
-        if (lastEmptyY < 0 || lastEmptyX < 0 || lastEmptyY >= SIZE || lastEmptyX >= SIZE) {
-            System.out.println("error");
+    /* проверка возможности хода */
+
+    public static boolean isCellValid(int y, int x) {
+        if (x < 0 || y < 0 || x > SIZE_X - 1 || y > SIZE_Y - 1) {
             return false;
         }
 
-        if (emptyCount > 0 && enemyCount >= SIZE - 1 && enemyCount > 0) tiles[lastEmptyY][lastEmptyX] = currentDot;
-        return true;
+        return field[y][x] == EMPTY_DOT;
     }
 
-    private static boolean setDown(int y, int x) {
-        int lastEmptyY = -1;
-        int lastEmptyX = -1;
-        int enemyCount = 0;
-        int emptyCount = 0;
-        char enemyDot = trigger ? DOT_O : DOT_X;
+    public static void setSym(int y, int x, char sym) {
+        field[y][x] = sym;
+    }
 
-        for (int j = 0; j < DOTS_TO_WIN; j++) {
+    public static void checkTerminator(){
+        boolean lineX = true;
+    }
 
-            if (y < 0 || y >= SIZE || x < 0 || x >= SIZE) return false;
-            if (DOT_EMPTY == tiles[y][x]) {
-                lastEmptyY = y;
-                lastEmptyX = x;
-                emptyCount++;
+    public static void main(String[] args) {
+        aGame();
+    }
+
+
+    public static void aGame() {
+        initField();
+        printField();
+
+        while (true) {
+            playerStep();
+            printField();
+            if(checkDiagonals(PLAYER_DOT) || checkLines(PLAYER_DOT)) {
+                System.out.println("Пользователь выиграл");
+                break;
             }
-            if (enemyDot == tiles[y][x]) enemyCount++;
-            if (DOT_EMPTY == tiles[y][x]) emptyCount++;
-
-            y++;
+            if(isFieldFull()) {
+                System.out.println("Заново!!");
+                break;
+            }
+            aiStep();
+            printField();
+            if(checkDiagonals(AI_DOT) || checkLines(AI_DOT)) {
+                System.out.println("Выграл бот!!");
+                break;
+            }
+            if(isFieldFull()) {
+                System.out.println("Заново!!");
+                break;
+            }
         }
-
-        if (lastEmptyY < 0 || lastEmptyX < 0 || lastEmptyY >= SIZE || lastEmptyX >= SIZE) {
-            System.out.println("error");
-            return false;
-        }
-
-        if (emptyCount > 0 && enemyCount >= SIZE - 1 && enemyCount > 0) tiles[lastEmptyY][lastEmptyX] = currentDot;
-        return true;
     }
 }
